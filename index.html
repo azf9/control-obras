@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Control de Obras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800&family=Archivo+Narrow:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: practical jobsite office, calm and direct
+   IDEA: a foreman's clipboard — job cards, stamped status, ledger
+   PICTURE: the working app itself; big ledger figures on each obra
+   COLOUR and TYPE: concrete ground, charcoal, safety orange accent; Archivo Narrow titles + Archivo
+   LAYOUT: one calm column, sticky header, cards and full-width actions */
+:root{color-scheme:light dark;
+--bg:light-dark(#eeece8,#16181a);--card:light-dark(#ffffff,#202326);--ink:light-dark(#1c1f22,#eceae6);
+--mut:light-dark(#6a6f73,#9ba1a6);--line:light-dark(#dcd8d1,#33373b);--hd:light-dark(#23272b,#0e1012);
+--or:#f26b1d;--or2:light-dark(#fde9dc,#3a2416);--pos:light-dark(#1f7a4a,#5cc98c);--neg:light-dark(#b3392f,#f07b70);
+--inset:light-dark(#f6f4f1,#191b1d)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Archivo,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Archivo Narrow",Archivo,sans-serif;margin:0;line-height:1.1}
+h2{font-size:30px;text-wrap:balance}h3{font-size:19px;margin-bottom:10px}
+a{color:var(--or)}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--hd);color:#fff;border-bottom:4px solid var(--or)}
+header h1{font-size:20px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back{background:none;border:0;color:#fff;font-size:30px;line-height:1;width:44px;height:44px;cursor:pointer}
+.mark{width:28px;height:28px;flex:none}
+.user{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:999px;padding:8px 12px;font:13px Archivo,sans-serif;cursor:pointer;min-height:36px}
+main{max-width:780px;margin:0 auto;padding:18px 14px 80px}
+.panel,.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.card{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;margin-bottom:10px}
+.card:hover{border-color:var(--or)}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.muted{color:var(--mut)}.small{font-size:13px}.center{text-align:center}.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+label{display:block;font-size:13px;color:var(--mut);margin-bottom:10px}
+input,select,textarea{display:block;width:100%;margin-top:4px;font:16px Archivo,sans-serif;color:var(--ink);background:var(--inset);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--or);outline-offset:1px}
+textarea{resize:vertical}
+.btn{font:600 15px Archivo,sans-serif;min-height:46px;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--or);border-color:var(--or);color:#fff}
+.btn.ok{background:var(--pos);border-color:var(--pos);color:#fff}
+.btn.okb{color:var(--pos);border-color:var(--pos)}
+.btn.bad{color:var(--neg);border-color:var(--neg)}
+.btn.finish{background:var(--hd);color:#fff;border-color:var(--hd);font-size:17px;min-height:54px}
+.btn.full{width:100%}.btn:disabled{opacity:.5}
+.link{background:none;border:0;color:var(--mut);text-decoration:underline;font:14px Archivo,sans-serif;cursor:pointer;padding:12px}
+.err{color:var(--neg);font-size:14px;min-height:1em;margin:4px 0}
+.login{max-width:380px;margin:8vh auto 0;padding:0 18px}
+.login h1{font-size:42px;margin:14px 0 6px}
+.login .mark{width:56px;height:56px}
+.tiles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.tile{text-align:left;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 16px;min-height:150px;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:10px;border-top:5px solid var(--or)}
+.tile:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+.tile .big{font:700 clamp(30px,8vw,44px)/1 "Archivo Narrow",sans-serif}
+.tile b{font:700 19px/1.15 "Archivo Narrow",sans-serif}
+.tile.fin{grid-column:1/-1;background:var(--hd);color:#fff;border-color:var(--hd);border-top-color:var(--or)}
+.tile.fin .muted{color:#b9bec2}
+.bar{display:flex;gap:10px;align-items:end;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;font:600 14px Archivo,sans-serif;color:var(--mut);padding:8px 14px;border-radius:8px;min-height:38px;cursor:pointer}
+.seg .on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.search{margin-bottom:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat span{display:block;font-size:12px;color:var(--mut)}
+.stat b{font:700 clamp(20px,5vw,26px)/1.2 "Archivo Narrow",sans-serif;white-space:nowrap}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.badge{display:inline-block;font:700 12px Archivo,sans-serif;padding:4px 10px;border-radius:999px;border:2px solid currentColor;transform:rotate(-2deg)}
+.badge.live{color:var(--or)}.badge.done{color:var(--pos)}
+.head2{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.mov{display:flex;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.amt{font-weight:700;white-space:nowrap;display:flex;align-items:start;gap:4px}
+.x{background:none;border:0;color:var(--mut);font-size:20px;line-height:1;width:32px;height:32px;cursor:pointer}
+.cat{margin-bottom:10px}.track{height:10px;background:var(--inset);border-radius:5px;overflow:hidden;margin-top:4px}
+.fill{height:100%;background:var(--or)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:500;font-size:12px}tfoot td{font-weight:700;border-bottom:0}
+.scroll{overflow-x:auto}
+.empty{text-align:center;color:var(--mut);padding:40px 10px;border:2px dashed var(--line);border-radius:12px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:18px}
+@media(min-width:600px){.ov{align-items:center}.sheet{border-radius:16px}}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--hd);color:#fff;padding:10px 16px;border-radius:10px;z-index:30;font-size:14px;max-width:90vw}
+.toast.bad{background:var(--neg)}
+.user-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+@media(max-width:420px){.tiles{gap:10px}.tile{min-height:132px;padding:14px 12px}}
+@media(prefers-reduced-motion:reduce){.tile:hover{transform:none}}
+</style>
+</head>
+<body>
+<div id="app"></div><div id="modal"></div><div id="toast"></div>
+<script>
+{
+const CAT_EGRESO=["Mercadotecnia","Comisiones","Seguros","Servicios legales","Gastos oficina","Renta de equipo","Reparación y mantenimiento","Mercancías / materiales","Gastos fijos","Gasolina","Comida","Otros"];
+const CAT_INGRESO=["Anticipo","Pago de cliente","Finiquito","Otro ingreso"];
+const METODOS=["Transferencia","Efectivo"];
+const COMPROB=["Factura","Recibo","Sin comprobante"];
+const MARK='<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27h26" stroke="#f26b1d" stroke-width="3"/><path d="M7 27V12l9-6 9 6v15" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="13" y="17" width="6" height="10" fill="#f26b1d"/></svg>';
+
+const S={view:'menu',user:null,obraId:null,cotTab:'cotizacion',mes:ymNow(),ready:false,mode:'local',obras:[],movs:[],usuarios:[],loadErr:'',modal:null,restored:false};
+let db=null,assets=null;
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+const fmt=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
+const money=n=>fmt.format(+n||0);
+const num=v=>{const n=parseFloat(v);return isFinite(n)?Math.round(n*100)/100:0};
+function ymNow(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function today(){const d=new Date();return ymNow()+'-'+String(d.getDate()).padStart(2,'0')}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function safeUrl(u){u=String(u||'');return(u.startsWith('/_blob/')||u.startsWith('https://'))?u:''}
+function mesTxt(ym){const[y,m]=ym.split('-');return new Date(+y,+m-1,1).toLocaleDateString('es-MX',{month:'long',year:'numeric'})}
+function fDate(s){if(!s)return'—';const[y,m,d]=s.split('-');return new Date(+y,+m-1,+d).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})}
+const val=id=>{const e=document.getElementById(id);return e?e.value:''};
+const setErr=(id,m)=>{const e=document.getElementById(id);if(e)e.textContent=m};
+const sum=a=>a.reduce((s,m)=>s+(+m.monto||0),0);
+const obraName=id=>{const o=S.obras.find(x=>x.id===id);return o?(o.cliente&&o.cliente.nombre)||'Obra':'General'};
+function totals(id){const m=S.movs.filter(x=>x.obraId===id);return{ing:sum(m.filter(x=>x.tipo==='ingreso')),egr:sum(m.filter(x=>x.tipo==='egreso'))}}
+
+let tt;function toast(msg,bad){const t=document.getElementById('toast');t.innerHTML=`<div class="toast ${bad?'bad':''}">${esc(msg)}</div>`;clearTimeout(tt);tt=setTimeout(()=>t.innerHTML='',3000)}
+
+/* ---- almacenamiento ---- */
+const LS='control-obras-v1';
+function lsLoad(){try{const d=JSON.parse(localStorage.getItem(LS)||'{}');S.obras=d.obras||[];S.movs=d.movs||[];S.usuarios=d.usuarios||[]}catch(e){}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify({obras:S.obras,movs:S.movs,usuarios:S.usuarios}))}catch(e){}}
+function upsertLocal(col,obj){const a=S[col].slice();const i=a.findIndex(x=>x.id===obj.id);if(i>=0)a[i]=obj;else a.push(obj);S[col]=a}
+async function save(col,obj){
+  upsertLocal(col,obj);
+  try{if(db){const{id,...rest}=obj;await db.collection(col).doc(id).set(JSON.parse(JSON.stringify(rest)))}else lsSave();return true}
+  catch(e){toast('No se pudo guardar ('+(e.code||e.message)+')',true);return false}}
+async function remove(col,id){
+  S[col]=S[col].filter(x=>x.id!==id);
+  try{if(db)await db.collection(col).doc(id).delete();else lsSave()}catch(e){toast('No se pudo eliminar ('+(e.code||e.message)+')',true)}}
+async function uploadFrom(id){
+  const inp=document.getElementById(id);const f=inp&&inp.files&&inp.files[0];if(!f||!assets)return null;
+  toast('Subiendo archivo…');
+  try{const r=await assets.upload(f);return{assetId:r.id,url:r.url,nombre:f.name}}
+  catch(e){toast('No se pudo subir el archivo ('+(e.code||e.message)+')',true);return null}}
+async function hash(u,p){const t=new TextEncoder().encode('obras:'+u.toLowerCase()+':'+p);
+  try{const b=await crypto.subtle.digest('SHA-256',t);return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+  catch(e){let h=7;for(const c of t)h=(h*31+c)|0;return'x'+h}}
+
+/* ---- vistas ---- */
+const TITLES={menu:'Inicio',cot:'Cotizaciones',cotForm:'Cotización',proc:'Obras en proceso',obra:'Obra',term:'Obras terminadas',fin:'Administración / Finanzas',users:'Usuarios'};
+const PARENT={cot:'menu',cotForm:'cot',proc:'menu',term:'menu',fin:'menu',users:'menu'};
+function render(){
+  const app=document.getElementById('app');
+  if(!S.user){app.innerHTML=viewLogin();return}
+  const v={menu:viewMenu,cot:viewCot,cotForm:viewCotForm,proc:()=>viewList('proceso'),obra:viewObra,term:()=>viewList('terminada'),fin:viewFin,users:viewUsers}[S.view]||viewMenu;
+  app.innerHTML=`<header>${S.view==='menu'?MARK:'<button class="back" data-act="back" aria-label="Regresar">‹</button>'}<h1>${TITLES[S.view]}</h1><button class="user" data-act="logout">${esc(S.user)} · Salir</button></header><main>${v()}</main>`;
+}
+function softRender(){
+  const a=document.activeElement;
+  if(S.modal)return;
+  if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.closest('#app'))return;
+  render();
+}
+const empty=m=>`<div class="empty">${esc(m)}</div>`;
+const stat=(l,v,c)=>`<div class="stat"><span>${l}</span><b class="${c||''}">${money(v)}</b></div>`;
+const fileInput=id=>assets?`<input type="file" id="${id}" accept="image/*,application/pdf">`:'<p class="muted small">Adjuntar archivos no está disponible en esta vista.</p>';
+
+function viewLogin(){
+  if(!S.ready)return`<div class="login">${MARK}<h1>Control de Obras</h1><p class="muted">Cargando…</p></div>`;
+  if(!S.restored){S.restored=true;let u=null;try{u=sessionStorage.getItem('co-user')}catch(e){}
+    if(u&&S.usuarios.some(x=>x.usuario===u)){S.user=u;S.view='menu';setTimeout(render);return''}}
+  const first=S.usuarios.length===0;
+  return`<div class="login">${MARK}<h1>Control de Obras</h1>
+  ${S.loadErr?`<p class="err">${esc(S.loadErr)}</p>`:''}
+  <p class="muted">${first?'Primera vez: crea tu usuario administrador.':'Ingresa para continuar.'}</p>
+  <form data-form="${first?'setup':'login'}">
+  <label>Usuario<input id="lu" autocomplete="username" autocapitalize="none" required></label>
+  <label>Contraseña<input id="lp" type="password" autocomplete="${first?'new-password':'current-password'}" required></label>
+  ${first?'<label>Confirmar contraseña<input id="lp2" type="password" autocomplete="new-password" required></label>':''}
+  <p class="err" id="lerr"></p>
+  <button class="btn primary full">${first?'Crear usuario y entrar':'Entrar'}</button></form>
+  ${S.mode==='local'?'<p class="muted small">Modo local: los datos se guardan sólo en este navegador.</p>':''}</div>`;
+}
+
+function viewMenu(){
+  const c=e=>S.obras.filter(o=>o.estado===e).length;
+  const bal=sum(S.movs.filter(m=>m.tipo==='ingreso'))-sum(S.movs.filter(m=>m.tipo==='egreso'));
+  const tile=(v,n,t,s,cls)=>`<button class="tile ${cls||''}" data-act="go" data-id="${v}"><span class="big">${n}</span><span><b>${t}</b><br><span class="muted small">${s}</span></span></button>`;
+  return`<h2 style="margin-bottom:14px">Hola, ${esc(S.user)}</h2><div class="tiles">
+  ${tile('cot',c('cotizacion'),'Cotizaciones','pendientes')}
+  ${tile('proc',c('proceso'),'Obras en proceso','activas')}
+  ${tile('term',c('terminada'),'Obras terminadas','en archivo')}
+  ${tile('users',S.usuarios.length,'Usuarios','con acceso')}
+  ${tile('fin',esc(money(bal)),'Administración / Finanzas','Balance general a la fecha','fin')}
+  </div>`;
+}
+
+function card(o,view){const c=o.cliente||{};const t=totals(o.id);
+  const f=o.estado==='terminada'?'Terminada '+fDate(o.terminada):o.estado==='proceso'?'Aceptada '+fDate(o.aceptada):'Creada '+fDate(o.creado);
+  const extra=o.estado==='proceso'||o.estado==='terminada'?`<div class="small"><span class="pos">Cobrado ${money(t.ing)}</span> · <span class="neg">Gastos ${money(t.egr)}</span></div>`:'';
+  const s=[c.nombre,c.direccion,c.telefono,o.descripcion].join(' ').toLowerCase();
+  return`<button class="card" data-act="open" data-id="${esc(o.id)}" data-view="${view}" data-s="${esc(s)}"><div class="row"><b>${esc(c.nombre||'Sin nombre')}</b><span>${money(o.monto)}</span></div><div class="muted small clip">${esc(o.descripcion||'Sin descripción')}</div>${extra}<div class="muted small">${f}</div></button>`}
+const byDate=(k)=>(a,b)=>(b[k]||'').localeCompare(a[k]||'');
+
+function viewCot(){
+  const tab=S.cotTab;const list=S.obras.filter(o=>o.estado===tab).sort(byDate('creado'));
+  return`<div class="bar"><div class="seg"><button class="${tab==='cotizacion'?'on':''}" data-act="cotTab" data-id="cotizacion">Pendientes</button><button class="${tab==='declinada'?'on':''}" data-act="cotTab" data-id="declinada">Declinadas</button></div><button class="btn primary" data-act="newCot">+ Nueva cotización</button></div>
+  ${list.length?list.map(o=>card(o,'cotForm')).join(''):empty(tab==='cotizacion'?'No hay cotizaciones pendientes. Crea una con “Nueva cotización”.':'No hay cotizaciones declinadas.')}`;
+}
+function viewCotForm(){
+  const o=S.obras.find(x=>x.id===S.obraId)||{};const c=o.cliente||{};const isNew=!o.id;
+  return`<div class="head2"><h2>${isNew?'Nueva cotización':esc(c.nombre||'Cotización')}</h2>${o.estado==='declinada'?'<span class="badge" style="color:var(--neg)">Declinada</span>':''}</div>
+  <div class="panel"><h3>Datos del cliente</h3>
+  <label>Nombre<input id="cn" value="${esc(c.nombre)}"></label>
+  <label>Dirección<input id="cd" value="${esc(c.direccion)}"></label>
+  <div class="two"><label>Teléfono<input id="ct" type="tel" value="${esc(c.telefono)}"></label><label>Correo<input id="cc" type="email" value="${esc(c.correo)}"></label></div></div>
+  <div class="panel"><h3>Trabajo a cotizar</h3>
+  <label>Descripción del trabajo<textarea id="cdesc" rows="4">${esc(o.descripcion)}</textarea></label>
+  <label>Monto cotizado (MXN)<input id="cm" type="number" step="0.01" inputmode="decimal" value="${esc(o.monto??'')}"></label>
+  <label>Notas<textarea id="cnotas" rows="2">${esc(o.notas)}</textarea></label></div>
+  <p class="err" id="cerr"></p>
+  <div class="panel"><h3>Status</h3><p class="muted small">Al aceptar, la cotización pasa a Obras en proceso.</p>
+  <div class="two"><button class="btn ok" data-act="cotAccept">Aceptar</button><button class="btn bad" data-act="cotDecline">Declinar</button></div></div>
+  <div class="two"><button class="btn" data-act="cotSave">Guardar</button>${isNew?'':'<button class="btn bad" data-act="cotDelete">Eliminar</button>'}</div>`;
+}
+function viewList(estado){
+  const list=S.obras.filter(o=>o.estado===estado).sort(byDate(estado==='proceso'?'aceptada':'terminada'));
+  if(!list.length)return empty(estado==='proceso'?'No hay obras en proceso. Acepta una cotización para empezar.':'Aún no hay obras terminadas.');
+  return`<input class="search" id="q" type="search" placeholder="Buscar por cliente, dirección o trabajo…">
+  <p class="muted small">${list.length} ${estado==='proceso'?'cliente(s) en proceso':'obra(s) terminada(s)'}</p>${list.map(o=>card(o,'obra')).join('')}`;
+}
+function movRow(m,showObra){const f=m.archivo&&safeUrl(m.archivo.url);
+  return`<div class="mov"><div><b>${esc(m.categoria)}</b>${showObra?` <span class="muted small">· ${esc(obraName(m.obraId))}</span>`:''}
+  <div class="muted small">${fDate(m.fecha)} · ${esc(m.metodo)} · ${esc(m.comprobante)}${f?` · <a href="${esc(f)}" target="_blank" rel="noopener">ver archivo</a>`:''}${m.nota?' · '+esc(m.nota):''}</div></div>
+  <div class="amt ${m.tipo==='ingreso'?'pos':'neg'}">${m.tipo==='ingreso'?'+':'−'}${money(m.monto)}<button class="x" data-act="delMov" data-id="${esc(m.id)}" aria-label="Eliminar movimiento">×</button></div></div>`}
+function viewObra(){
+  const o=S.obras.find(x=>x.id===S.obraId);if(!o)return empty('No se encontró la obra.');
+  const c=o.cliente||{},t=totals(o.id),term=o.estado==='terminada',util=t.ing-t.egr;
+  const movs=S.movs.filter(m=>m.obraId===o.id).sort(byDate('fecha'));
+  const k=o.contrato&&safeUrl(o.contrato.url);
+  return`<div class="head2"><h2>${esc(c.nombre)}</h2><span class="badge ${term?'done':'live'}">${term?'Terminada':'En proceso'}</span></div>
+  <div class="panel small">${c.telefono?`Tel: <a href="tel:${esc(c.telefono)}">${esc(c.telefono)}</a><br>`:''}${c.correo?`Correo: ${esc(c.correo)}<br>`:''}${c.direccion?`Dirección: ${esc(c.direccion)}<br>`:''}<span class="muted">Aceptada ${fDate(o.aceptada)}${term?' · Terminada '+fDate(o.terminada):''}</span></div>
+  <div class="stats">${stat('Contratado',o.monto)}${stat('Cobrado',t.ing,'pos')}${stat('Gastos',t.egr,'neg')}${stat('Utilidad',util,util>=0?'pos':'neg')}${stat('Por cobrar',Math.max(0,(+o.monto||0)-t.ing))}</div>
+  <div class="panel"><h3>Descripción del trabajo</h3><textarea id="odesc" rows="4">${esc(o.descripcion)}</textarea>
+  <h3 style="margin-top:14px">Contrato</h3>${k?`<p><a href="${esc(k)}" target="_blank" rel="noopener">${esc(o.contrato.nombre||'Ver contrato')}</a></p>`:'<p class="muted small">Sin contrato adjunto.</p>'}
+  <label>${k?'Reemplazar contrato':'Adjuntar contrato (PDF o foto)'}${fileInput('ocontrato')}</label>
+  <button class="btn primary full" data-act="obraSave">Guardar descripción y contrato</button></div>
+  <div class="panel"><h3>Ingresos y gastos de la obra</h3>
+  <div class="two"><button class="btn okb" data-act="addMov" data-id="ingreso">+ Ingreso</button><button class="btn bad" data-act="addMov" data-id="egreso">+ Gasto</button></div>
+  ${movs.length?movs.map(m=>movRow(m)).join(''):'<p class="muted small" style="margin-top:12px">Aún no hay movimientos. Registra pagos del cliente y gastos con su factura o recibo.</p>'}</div>
+  ${term?'<button class="btn full" data-act="obraReopen">Regresar a obras en proceso</button>':'<button class="btn finish full" data-act="obraFinish">Terminado</button>'}`;
+}
+function viewFin(){
+  const ym=S.mes,mm=S.movs.filter(m=>(m.fecha||'').startsWith(ym));
+  const ingM=mm.filter(m=>m.tipo==='ingreso'),egM=mm.filter(m=>m.tipo==='egreso');
+  const ing=sum(ingM),egr=sum(egM);
+  const byCat={};egM.forEach(m=>byCat[m.categoria]=(byCat[m.categoria]||0)+(+m.monto||0));
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);const max=cats.length?cats[0][1]:1;
+  const hoy=today(),hasta=S.movs.filter(m=>(m.fecha||'')<=hoy);
+  const TI=sum(hasta.filter(m=>m.tipo==='ingreso')),TE=sum(hasta.filter(m=>m.tipo==='egreso'));
+  const yr=ym.slice(0,4);let ty=[0,0];
+  const rows=Array.from({length:12},(_,i)=>{const k=yr+'-'+String(i+1).padStart(2,'0');const x=S.movs.filter(m=>(m.fecha||'').startsWith(k));
+    const a=sum(x.filter(m=>m.tipo==='ingreso')),b=sum(x.filter(m=>m.tipo==='egreso'));ty[0]+=a;ty[1]+=b;
+    return`<tr${k===ym?' style="background:var(--or2)"':''}><td>${new Date(+yr,i,1).toLocaleDateString('es-MX',{month:'long'})}</td><td class="pos">${a?money(a):'—'}</td><td class="neg">${b?money(b):'—'}</td><td>${a||b?money(a-b):'—'}</td></tr>`}).join('');
+  return`<div class="panel" style="background:var(--hd);color:#fff;border-color:var(--hd)"><h3>Balance general a la fecha</h3>
+  <div class="row"><span style="color:#b9bec2">Al ${fDate(hoy)}</span><b style="font:700 clamp(28px,7vw,40px) 'Archivo Narrow',sans-serif;color:${TI-TE>=0?'#7ee0a5':'#ff978c'}">${money(TI-TE)}</b></div>
+  <div class="row small" style="color:#d6dadd"><span>Ingresos totales ${money(TI)}</span><span>Egresos totales ${money(TE)}</span></div></div>
+  <div class="bar"><label style="margin:0">Mes<input type="month" id="mes" value="${ym}"></label><button class="btn primary" data-act="addMov" data-id="egreso">+ Movimiento</button></div>
+  <div class="stats">${stat('Ingresos del mes',ing,'pos')}${stat('Egresos del mes',egr,'neg')}${stat('Resultado del mes',ing-egr,ing-egr>=0?'pos':'neg')}</div>
+  <div class="panel"><h3>Egresos por categoría · ${mesTxt(ym)}</h3>${cats.length?cats.map(([k,v])=>`<div class="cat"><div class="row small"><span>${esc(k)}</span><b>${money(v)}</b></div><div class="track"><div class="fill" style="width:${(v/max*100).toFixed(1)}%"></div></div></div>`).join(''):'<p class="muted small">Sin egresos este mes.</p>'}</div>
+  <div class="panel"><h3>Ingresos y egresos mensuales ${yr}</h3><div class="scroll"><table><thead><tr><th>Mes</th><th>Ingresos</th><th>Egresos</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total ${yr}</td><td class="pos">${money(ty[0])}</td><td class="neg">${money(ty[1])}</td><td>${money(ty[0]-ty[1])}</td></tr></tfoot></table></div></div>
+  <div class="panel"><h3>Movimientos de ${mesTxt(ym)}</h3>${mm.length?mm.slice().sort(byDate('fecha')).map(m=>movRow(m,true)).join(''):'<p class="muted small">No hay movimientos este mes.</p>'}</div>`;
+}
+function viewUsers(){
+  return`<div class="panel"><h3>Usuarios con acceso</h3>${S.usuarios.map(u=>`<div class="user-row"><span>${esc(u.usuario)}${u.usuario===S.user?' <span class="muted small">(tú)</span>':''}</span>${u.usuario===S.user?'':`<button class="btn bad" data-act="delUser" data-id="${esc(u.id)}">Quitar</button>`}</div>`).join('')}</div>
+  <div class="panel"><h3>Agregar usuario</h3><form data-form="addUser"><label>Usuario<input id="nu" autocapitalize="none" required></label><label>Contraseña<input id="np" type="password" autocomplete="new-password" required></label><p class="err" id="uerr"></p><button class="btn primary full">Agregar</button></form></div>`;
+}
+
+/* ---- modales ---- */
+function renderModal(){
+  const M=document.getElementById('modal');const md=S.modal;if(!md){M.innerHTML='';return}
+  if(md.confirm){M.innerHTML=`<div class="ov"><div class="sheet"><h3>${esc(md.confirm)}</h3><p class="muted small">${esc(md.detail||'')}</p><div class="two"><button class="btn" data-act="closeModal">Cancelar</button><button class="btn primary" data-act="confirmYes">Sí, continuar</button></div></div></div>`;return}
+  const obras=S.obras.filter(o=>o.estado==='proceso'||o.estado==='terminada');
+  M.innerHTML=`<div class="ov"><div class="sheet"><div class="seg" style="margin-bottom:14px"><button class="${md.tipo==='ingreso'?'on':''}" data-act="movTipo" data-id="ingreso">Ingreso</button><button class="${md.tipo==='egreso'?'on':''}" data-act="movTipo" data-id="egreso">Gasto</button></div>
+  <label>Obra<select id="mo"><option value="">General (sin obra)</option>${obras.map(o=>`<option value="${esc(o.id)}"${o.id===md.obraId?' selected':''}>${esc(o.cliente&&o.cliente.nombre)}</option>`).join('')}</select></label>
+  <div class="two"><label>Monto (MXN)<input id="mm" type="number" step="0.01" inputmode="decimal"></label><label>Fecha<input id="mf" type="date" value="${today()}"></label></div>
+  <label>Categoría<select id="mc">${catOpts(md.tipo)}</select></label>
+  <div class="two"><label>Forma de pago<select id="mp">${METODOS.map(x=>`<option>${x}</option>`).join('')}</select></label><label>Comprobante<select id="mcomp">${COMPROB.map(x=>`<option>${x}</option>`).join('')}</select></label></div>
+  <label>Adjuntar factura o recibo${fileInput('mfile')}</label>
+  <label>Nota<input id="mn"></label><p class="err" id="merr"></p>
+  <div class="two"><button class="btn" data-act="closeModal">Cancelar</button><button class="btn primary" data-act="movSave">Guardar</button></div></div></div>`;
+}
+const catOpts=t=>(t==='ingreso'?CAT_INGRESO:CAT_EGRESO).map(x=>`<option>${x}</option>`).join('');
+function ask(confirm,detail,fn){S.modal={confirm,detail,fn};renderModal()}
+function closeModal(){S.modal=null;renderModal();render()}
+
+/* ---- acciones ---- */
+function readCot(estado){
+  const prev=S.obras.find(x=>x.id===S.obraId)||{};const nombre=val('cn').trim();
+  if(!nombre){setErr('cerr','Escribe el nombre del cliente.');return null}
+  return{...prev,id:prev.id||uid(),estado:estado||prev.estado||'cotizacion',creado:prev.creado||today(),
+    cliente:{nombre,direccion:val('cd').trim(),telefono:val('ct').trim(),correo:val('cc').trim()},
+    descripcion:val('cdesc').trim(),monto:num(val('cm')),notas:val('cnotas').trim()}}
+const go=v=>{S.view=v;render();scrollTo(0,0)};
+const ACT={
+  go,back:()=>go(S.view==='obra'?((S.obras.find(o=>o.id===S.obraId)||{}).estado==='terminada'?'term':'proc'):PARENT[S.view]||'menu'),
+  logout:()=>{S.user=null;try{sessionStorage.removeItem('co-user')}catch(e){}render()},
+  open:(id,el)=>{S.obraId=id;go(el.dataset.view)},
+  cotTab:id=>{S.cotTab=id;render()},
+  newCot:()=>{S.obraId=null;go('cotForm')},
+  cotSave:async()=>{const o=readCot();if(!o)return;S.obraId=o.id;go('cot');await save('obras',o);toast('Cotización guardada')},
+  cotAccept:async()=>{const o=readCot('proceso');if(!o)return;o.aceptada=today();S.obraId=o.id;await save('obras',o);go('obra');toast('Cotización aceptada: pasó a obras en proceso')},
+  cotDecline:async()=>{const o=readCot('declinada');if(!o)return;o.declinada=today();S.cotTab='declinada';await save('obras',o);go('cot');toast('Cotización declinada')},
+  cotDelete:()=>ask('¿Eliminar esta cotización?','No se puede deshacer.',async()=>{await remove('obras',S.obraId);go('cot')}),
+  obraSave:async()=>{const o=S.obras.find(x=>x.id===S.obraId);if(!o)return;const k=await uploadFrom('ocontrato');
+    await save('obras',{...o,descripcion:val('odesc').trim(),...(k?{contrato:k}:{})});render();toast('Obra guardada')},
+  obraFinish:()=>ask('¿Marcar la obra como terminada?','Pasará a la base de obras terminadas.',async()=>{const o=S.obras.find(x=>x.id===S.obraId);await save('obras',{...o,descripcion:val('odesc').trim()||o.descripcion||'',estado:'terminada',terminada:today()});go('term');toast('Obra terminada')}),
+  obraReopen:async()=>{const o=S.obras.find(x=>x.id===S.obraId);await save('obras',{...o,estado:'proceso'});go('proc')},
+  addMov:tipo=>{S.modal={tipo,obraId:S.view==='obra'?S.obraId:''};renderModal()},
+  movTipo:t=>{S.modal.tipo=t;document.getElementById('mc').innerHTML=catOpts(t);document.querySelectorAll('.sheet .seg button').forEach(b=>b.classList.toggle('on',b.dataset.id===t))},
+  movSave:async(id,el)=>{const monto=num(val('mm'));if(monto<=0)return setErr('merr','Escribe un monto mayor a cero.');
+    const fecha=val('mf');if(!fecha)return setErr('merr','Elige la fecha.');el.disabled=true;
+    const archivo=await uploadFrom('mfile');
+    const m={id:uid(),obraId:val('mo')||null,tipo:S.modal.tipo,monto,fecha,categoria:val('mc'),metodo:val('mp'),comprobante:val('mcomp'),archivo,nota:val('mn').trim(),usuario:S.user};
+    S.modal=null;renderModal();await save('movs',m);render();toast('Movimiento guardado')},
+  delMov:id=>ask('¿Eliminar este movimiento?','Se quitará de la obra y de las finanzas.',async()=>{await remove('movs',id);render()}),
+  delUser:id=>ask('¿Quitar este usuario?','Ya no podrá entrar a la app.',async()=>{await remove('usuarios',id);render()}),
+  closeModal,
+  confirmYes:async()=>{const fn=S.modal&&S.modal.fn;S.modal=null;renderModal();if(fn)await fn()}
+};
+const FORMS={
+  login:async()=>{const u=val('lu').trim(),p=val('lp');const usr=S.usuarios.find(x=>(x.usuario||'').toLowerCase()===u.toLowerCase());
+    if(!usr||usr.hash!==await hash(u,p))return setErr('lerr','Usuario o contraseña incorrectos.');enter(usr)},
+  setup:async()=>{const u=val('lu').trim(),p=val('lp');if(!u)return;if(p.length<4)return setErr('lerr','Usa al menos 4 caracteres en la contraseña.');
+    if(p!==val('lp2'))return setErr('lerr','Las contraseñas no coinciden.');
+    const usr={id:uid(),usuario:u,hash:await hash(u,p),creado:today()};if(await save('usuarios',usr))enter(usr)},
+  addUser:async()=>{const u=val('nu').trim(),p=val('np');if(!u)return;if(S.usuarios.some(x=>x.usuario.toLowerCase()===u.toLowerCase()))return setErr('uerr','Ese usuario ya existe.');
+    if(p.length<4)return setErr('uerr','Usa al menos 4 caracteres en la contraseña.');
+    await save('usuarios',{id:uid(),usuario:u,hash:await hash(u,p),creado:today()});render();toast('Usuario agregado')}
+};
+function enter(usr){S.user=usr.usuario;try{sessionStorage.setItem('co-user',usr.usuario)}catch(e){}go('menu')}
+
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(f){e.preventDefault();f(el.dataset.id,el,e)}});
+document.addEventListener('submit',e=>{e.preventDefault();const f=FORMS[e.target.dataset.form];if(f)f()});
+document.addEventListener('input',e=>{if(e.target.id==='q'){const q=e.target.value.toLowerCase().trim();document.querySelectorAll('.card[data-s]').forEach(c=>c.style.display=!q||c.dataset.s.includes(q)?'':'none')}});
+document.addEventListener('change',e=>{if(e.target.id==='mes'&&e.target.value){S.mes=e.target.value;render()}});
+
+/* ---- arranque ---- */
+async function init(){
+  render();
+  const hasClaude=typeof window.claude!=='undefined'&&window.claude&&typeof window.claude.use==='function';
+  if(hasClaude){try{db=await window.claude.use('db')}catch(e){db=null}try{assets=await window.claude.use('assets')}catch(e){assets=null}}
+  if(!db){S.mode='local';lsLoad();S.ready=true;render();return}
+  S.mode='db';
+  const timer=setTimeout(()=>{if(!S.ready){S.ready=true;S.loadErr='No se pudo conectar con la base de datos todavía; los datos pueden estar incompletos.';render()}},10000);
+  const got={};
+  ['obras','movs','usuarios'].forEach(col=>{
+    db.collection(col).onSnapshot(snap=>{
+      S[col]=snap.docs.map(d=>({id:d.id,...d.data()}));
+      if(!snap.metadata.fromCache)got[col]=true;
+      if(!S.ready&&got.obras&&got.movs&&got.usuarios){S.ready=true;S.loadErr='';clearTimeout(timer);render();return}
+      softRender();
+    },err=>{clearTimeout(timer);S.ready=true;S.loadErr='Error al cargar los datos ('+err.code+').';render()});
+  });
+}
+init();
+}
+</script>
+</body>
+</html>
